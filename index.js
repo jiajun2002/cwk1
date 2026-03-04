@@ -1,10 +1,60 @@
 require('dotenv').config();
 const express = require('express');
 const db = require('./db/index');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 app.use(express.json());
 const PORT = process.env.PORT || 3000;
+
+// JWT Middleware
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
+    if (!token) return res.status(401).json({ error: 'Access denied. No token provided.' });
+    try {
+        req.user = jwt.verify(token, process.env.JWT_SECRET);
+        next();
+    } catch (err) {
+        return res.status(403).json({ error: 'Invalid or expired token.' });
+    }
+};
+
+// Auth Routes
+
+// Register
+app.post('/api/auth/register', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Username and password are required.' });
+    try {
+        const password_hash = await bcrypt.hash(password, 10);
+        const { rows } = await db.query(
+            'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username',
+            [username, password_hash]
+        );
+        res.status(201).json({ message: 'User registered successfully.', user: rows[0] });
+    } catch (err) {
+        if (err.code === '23505') return res.status(409).json({ error: 'Username already exists.' });
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Login
+app.post('/api/auth/login', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Username and password are required.' });
+    try {
+        const { rows } = await db.query('SELECT * FROM users WHERE username = $1', [username]);
+        if (!rows.length) return res.status(401).json({ error: 'Invalid username or password.' });
+        const valid = await bcrypt.compare(password, rows[0].password_hash);
+        if (!valid) return res.status(401).json({ error: 'Invalid username or password.' });
+        const token = jwt.sign({ id: rows[0].id, username: rows[0].username }, process.env.JWT_SECRET, { expiresIn: '24h' });
+        res.json({ message: 'Login successful.', token });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Get all stops or filter by name/locality, limited to 50 results
 app.get('/api/stops', async (req, res) => {
@@ -38,8 +88,8 @@ app.get('/api/stops/:id', async (req, res, next) => {
 	} catch (err) { next(err); }
 });
 
-// Create stop
-app.post('/api/stops', async (req, res, next) => {
+// Create stop (protected)
+app.post('/api/stops', authenticateToken, async (req, res, next) => {
 	try {
 		const { atco_code, stop_name, street, indicator, latitude, longitude, locality } = req.body;
 
@@ -68,8 +118,8 @@ app.post('/api/stops', async (req, res, next) => {
 	} catch (err) { next(err); }
 });
 
-// Delete stop
-app.delete('/api/stops/:id', async (req, res, next) => {
+// Delete stop (protected)
+app.delete('/api/stops/:id', authenticateToken, async (req, res, next) => {
 	try {
 		const { rows } = await db.query('DELETE FROM stops WHERE atco_code = $1 RETURNING *', [req.params.id]);
 		if (!rows.length) return res.status(404).json({ error: 'Stop not found' });
@@ -77,8 +127,8 @@ app.delete('/api/stops/:id', async (req, res, next) => {
 	} catch (err) { next(err); }
 });
 
-// Update stop
-app.put('/api/stops/:id', async (req, res, next) => {
+// Update stop (protected)
+app.put('/api/stops/:id', authenticateToken, async (req, res, next) => {
 	try {
 		const { stop_name, street, indicator, latitude, longitude, locality } = req.body;
 		const query = `
@@ -119,8 +169,8 @@ app.get('/api/logs', async (req, res) => {
 		}
 });
 
-// Create a new arrival log
-app.post('/api/logs', async (req, res) => {
+// Create a new arrival log (protected)
+app.post('/api/logs', authenticateToken, async (req, res) => {
     const { stop_id, route_number, scheduled_time, actual_time, delay_minutes, status } = req.body;
     try {
         const query = `
@@ -134,8 +184,8 @@ app.post('/api/logs', async (req, res) => {
     }
 });
 
-// Edit an existing log entry
-app.put('/api/logs/:id', async (req, res) => {
+// Edit an existing log entry (protected)
+app.put('/api/logs/:id', authenticateToken, async (req, res) => {
 		const { stop_id, route_number, scheduled_time, actual_time, delay_minutes, status } = req.body;
 		try {
 				const query = `
@@ -157,8 +207,8 @@ app.put('/api/logs/:id', async (req, res) => {
 		}
 });
 
-// Delete a specific log entry
-app.delete('/api/logs/:id', async (req, res) => {
+// Delete a specific log entry (protected)
+app.delete('/api/logs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await db.query('DELETE FROM arrival_logs WHERE id = $1', [req.params.id]);
         if (result.rowCount === 0) return res.status(404).json({ error: 'Log not found' });
