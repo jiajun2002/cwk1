@@ -3,35 +3,40 @@ const router = express.Router();
 const db = require('../db/index');
 const authenticateToken = require('../middleware/authenticateToken');
 
-// Get all stops or filter by name/locality, limited to 50 results
+// Get all stops or filter by name/locality/atco_code, with pagination
 router.get('/', async (req, res) => {
-    const { name, locality } = req.query;
+    const { name, locality, atco_code } = req.query;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const offset = (page - 1) * limit;
     try {
-        let query = 'SELECT * FROM stops WHERE 1=1';
+        let where = 'WHERE 1=1';
         const params = [];
         if (name) {
             params.push(`%${name}%`);
-            query += ` AND stop_name ILIKE $${params.length}`;
+            where += ` AND stop_name ILIKE $${params.length}`;
         }
         if (locality) {
-            params.push(locality);
-            query += ` AND locality = $${params.length}`;
+            params.push(`%${locality}%`);
+            where += ` AND locality ILIKE $${params.length}`;
         }
-        const result = await db.query(query + ' ORDER BY stop_name LIMIT 50', params);
-        res.json(result.rows);
+        if (atco_code) {
+            params.push(atco_code);
+            where += ` AND atco_code = $${params.length}`;
+        }
+        const countResult = await db.query(`SELECT COUNT(*) FROM stops ${where}`, params);
+        const total = parseInt(countResult.rows[0].count);
+        params.push(limit, offset);
+        const result = await db.query(
+            `SELECT * FROM stops ${where} ORDER BY stop_name LIMIT $${params.length - 1} OFFSET $${params.length}`,
+            params
+        );
+        res.json({ data: result.rows, page, limit, total });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Get single stop
-router.get('/:id', async (req, res, next) => {
-    try {
-        const { rows } = await db.query('SELECT * FROM stops WHERE atco_code = $1', [req.params.id]);
-        if (!rows.length) return res.status(404).json({ error: 'Stop not found' });
-        res.json(rows[0]);
-    } catch (err) { next(err); }
-});
 
 // Create stop (protected)
 router.post('/', authenticateToken, async (req, res, next) => {

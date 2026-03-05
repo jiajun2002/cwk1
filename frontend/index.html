@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leeds Bus Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>Leeds Bus Tracker</h1>
+<div style="margin-bottom:8px;">
+    <span id="auth-status">Not logged in</span>
+    <button id="logout-btn" style="display:none" onclick="logout()">Logout</button>
+</div>
+
+<nav>
+    <button class="active" onclick="switchTab('auth')">Auth</button>
+    <button onclick="switchTab('stops')">Stops</button>
+    <button onclick="switchTab('logs')">Arrival Logs</button>
+    <button onclick="switchTab('reliability')">Reliability</button>
+</nav>
+
+<!-- ===== AUTH TAB ===== -->
+    <div id="tab-auth" class="tab-content active">
+
+        <div class="card">
+            <h2>Register</h2>
+            <div class="form-row">
+                <input id="reg-username" placeholder="Username">
+                <input id="reg-password" type="password" placeholder="Password">
+                <button class="btn btn-primary" onclick="register()">Register</button>
+            </div>
+            <div id="reg-result" class="result-box" style="display:none"></div>
+        </div>
+
+        <div class="card">
+            <h2>Login</h2>
+            <div class="form-row">
+                <input id="login-username" placeholder="Username">
+                <input id="login-password" type="password" placeholder="Password">
+                <button class="btn btn-primary" onclick="login()">Login</button>
+            </div>
+            <div id="login-result" class="result-box" style="display:none"></div>
+        </div>
+
+    </div>
+
+    <!-- ===== STOPS TAB ===== -->
+    <div id="tab-stops" class="tab-content">
+
+        <div class="card">
+            <h2>Search Stops</h2>
+            <div class="form-row">
+                <input id="stops-atco" placeholder="Filter by ATCO Code">
+                <input id="stops-name" placeholder="Filter by name">
+                <input id="stops-locality" placeholder="Filter by locality">
+                <button class="btn btn-primary" onclick="getStops()">Search</button>
+            </div>
+            <div id="stops-list-result"></div>
+        </div>
+
+        <div class="card">
+            <h2>Create Stop <span style="font-size:0.8rem;color:#888">(requires login)</span></h2>
+            <div class="form-row">
+                <input id="stop-atco" placeholder="ATCO Code *">
+                <input id="stop-name" placeholder="Stop Name *">
+                <input id="stop-street" placeholder="Street">
+            </div>
+            <div class="form-row">
+                <input id="stop-indicator" placeholder="Indicator">
+                <input id="stop-lat" placeholder="Latitude *" type="number" step="any">
+                <input id="stop-lon" placeholder="Longitude *" type="number" step="any">
+                <input id="stop-locality" placeholder="Locality">
+            </div>
+            <div class="form-row">
+                <button class="btn btn-success" onclick="createStop()">Create Stop</button>
+            </div>
+            <div id="stop-create-result" class="result-box" style="display:none"></div>
+        </div>
+
+        <div class="card">
+            <h2>Update Stop <span style="font-size:0.8rem;color:#888">(requires login)</span></h2>
+            <div class="form-row">
+                <input id="stop-update-id" placeholder="ATCO Code to update *">
+            </div>
+            <div class="form-row">
+                <input id="stop-update-name" placeholder="New Stop Name">
+                <input id="stop-update-street" placeholder="New Street">
+                <input id="stop-update-indicator" placeholder="New Indicator">
+            </div>
+            <div class="form-row">
+                <input id="stop-update-lat" placeholder="New Latitude" type="number" step="any">
+                <input id="stop-update-lon" placeholder="New Longitude" type="number" step="any">
+                <input id="stop-update-locality" placeholder="New Locality">
+            </div>
+            <div class="form-row">
+                <button class="btn btn-primary" onclick="updateStop()">Update Stop</button>
+            </div>
+            <div id="stop-update-result" class="result-box" style="display:none"></div>
+        </div>
+
+        <div class="card">
+            <h2>Delete Stop <span style="font-size:0.8rem;color:#888">(requires login)</span></h2>
+            <div class="form-row">
+                <input id="stop-delete-id" placeholder="ATCO Code">
+                <button class="btn btn-danger" onclick="deleteStop()">Delete Stop</button>
+            </div>
+            <div id="stop-delete-result" class="result-box" style="display:none"></div>
+        </div>
+
+    </div>
+
+    <!-- ===== LOGS TAB ===== -->
+    <div id="tab-logs" class="tab-content">
+
+        <div class="card">
+            <h2>View Arrival Logs</h2>
+            <div class="form-row">
+                <input id="logs-stop-id" placeholder="Filter by Stop ID (optional)">
+                <input id="logs-route" placeholder="Filter by Route Number (optional)">
+                <button class="btn btn-primary" onclick="getLogs()">Get Logs</button>
+            </div>
+            <div id="logs-list-result"></div>
+        </div>
+
+        <div class="card">
+            <h2>Create Arrival Log <span style="font-size:0.8rem;color:#888">(requires login)</span></h2>
+            <div class="form-row">
+                <input id="log-stop-id" placeholder="Stop ID *">
+                <input id="log-route" placeholder="Route Number *">
+            </div>
+            <div class="form-row">
+                <label style="font-size:0.85rem;align-self:center">Scheduled *:</label>
+                <input id="log-scheduled" type="datetime-local">
+                <label style="font-size:0.85rem;align-self:center">Actual:</label>
+                <input id="log-actual" type="datetime-local">
+            </div>
+            <div class="form-row">
+                <button class="btn btn-success" onclick="createLog()">Create Log</button>
+            </div>
+            <div id="log-create-result" class="result-box" style="display:none"></div>
+        </div>
+
+        <div class="card">
+            <h2>Update Arrival Log <span style="font-size:0.8rem;color:#888">(requires login)</span></h2>
+            <div class="form-row">
+                <input id="log-update-id" placeholder="Log ID *">
+                <input id="log-update-stop-id" placeholder="New Stop ID">
+                <input id="log-update-route" placeholder="New Route Number">
+            </div>
+            <div class="form-row">
+                <label style="font-size:0.85rem;align-self:center">Scheduled:</label>
+                <input id="log-update-scheduled" type="datetime-local">
+                <label style="font-size:0.85rem;align-self:center">Actual:</label>
+                <input id="log-update-actual" type="datetime-local">
+            </div>
+            <div class="form-row">
+                <button class="btn btn-primary" onclick="updateLog()">Update Log</button>
+            </div>
+            <div id="log-update-result" class="result-box" style="display:none"></div>
+        </div>
+
+        <div class="card">
+            <h2>Delete Arrival Log <span style="font-size:0.8rem;color:#888">(requires login)</span></h2>
+            <div class="form-row">
+                <input id="log-delete-id" placeholder="Log ID">
+                <button class="btn btn-danger" onclick="deleteLog()">Delete Log</button>
+            </div>
+            <div id="log-delete-result" class="result-box" style="display:none"></div>
+        </div>
+
+    </div>
+
+    <!-- ===== RELIABILITY TAB ===== -->
+    <div id="tab-reliability" class="tab-content">
+
+        <div class="card">
+            <h2>Reliability by Stop</h2>
+            <div class="form-row">
+                <input id="rel-stop-id" placeholder="ATCO Code">
+                <button class="btn btn-primary" onclick="getStopReliability()">Get Stats</button>
+            </div>
+            <div id="rel-stop-result"></div>
+        </div>
+
+        <div class="card">
+            <h2>Reliability by Route</h2>
+            <div class="form-row">
+                <input id="rel-route" placeholder="Route Number">
+                <input id="rel-route-stop-id" placeholder="Filter by Stop ID (optional)">
+                <button class="btn btn-primary" onclick="getRouteReliability()">Get Stats</button>
+            </div>
+            <div id="rel-route-result"></div>
+        </div>
+
+    </div>
+
+<script src="app.js"></script>
+</body>
+</html>
