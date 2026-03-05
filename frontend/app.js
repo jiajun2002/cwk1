@@ -90,6 +90,7 @@ function renderStats(containerId, data) {
         <table>
             <tr><th>Total Arrivals</th><td>${s.total_arrivals}</td></tr>
             <tr><th>Avg Delay (min)</th><td>${s.avg_delay ?? 'N/A'}</td></tr>
+            <tr><th>Early</th><td>${s.early_count ?? 0}</td></tr>
             <tr><th>Late</th><td>${s.late_count}</td></tr>
             <tr><th>Cancelled</th><td>${s.cancelled_count}</td></tr>
             <tr><th>Punctuality Score</th><td>${s.punctuality_score}%</td></tr>
