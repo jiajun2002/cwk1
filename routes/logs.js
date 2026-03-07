@@ -10,20 +10,6 @@ router.get('/', async (req, res) => {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const offset = (page - 1) * limit;
     try {
-        // Check if stop_id exists
-        if (stop_id) {
-            const stopCheck = await db.query('SELECT 1 FROM stops WHERE atco_code = $1', [stop_id]);
-            if (!stopCheck.rows.length) {
-                return res.status(404).json({ error: 'Stop not found.' });
-            }
-        }
-        // Check if route_number exists
-        if (route_number) {
-            const routeCheck = await db.query('SELECT 1 FROM arrival_logs WHERE route_number = $1 LIMIT 1', [route_number]);
-            if (!routeCheck.rows.length) {
-                return res.status(404).json({ error: 'Route not found.' });
-            }
-        }
         let where = 'WHERE 1=1';
         const params = [];
         if (stop_id) {
@@ -50,6 +36,9 @@ router.get('/', async (req, res) => {
 // Create a new arrival log (protected)
 router.post('/', authenticateToken, async (req, res) => {
     const { stop_id, route_number, scheduled_time, actual_time } = req.body;
+    if (!stop_id || !route_number || !scheduled_time) {
+        return res.status(400).json({ error: 'stop_id, route_number, and scheduled_time are required' });
+    }
     try {
         const delay_minutes = (scheduled_time && actual_time)
             ? Math.round((new Date(actual_time) - new Date(scheduled_time)) / 60000)
@@ -68,11 +57,11 @@ router.post('/', authenticateToken, async (req, res) => {
         const { rows } = await db.query(query, [stop_id, route_number, scheduled_time, actual_time, delay_minutes, status]);
         res.status(201).json(rows[0]);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        res.status(500).json({ error: err.message });
     }
 });
 
-// Edit an existing log entry (protected)
+// Update log (protected)
 router.put('/:id', authenticateToken, async (req, res) => {
     const { stop_id, route_number, scheduled_time, actual_time } = req.body;
     try {
@@ -98,9 +87,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
         `;
         const { rows } = await db.query(query, [req.params.id, stop_id, route_number, scheduled_time, actual_time]);
         if (!rows.length) return res.status(404).json({ error: 'Log not found' });
-        res.json(rows[0]);
+        res.status(200).json(rows[0]);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -109,7 +98,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     try {
         const result = await db.query('DELETE FROM arrival_logs WHERE id = $1', [req.params.id]);
         if (result.rowCount === 0) return res.status(404).json({ error: 'Log not found' });
-        res.json({ message: 'Log deleted' });
+        res.status(200).json({ message: 'Log deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

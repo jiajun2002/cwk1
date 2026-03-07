@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
 
 
 // Create stop (protected)
-router.post('/', authenticateToken, async (req, res, next) => {
+router.post('/', authenticateToken, async (req, res) => {
     try {
         const { atco_code, stop_name, street, indicator, latitude, longitude, locality } = req.body;
         if (!atco_code || !stop_name) {
@@ -52,8 +52,8 @@ router.post('/', authenticateToken, async (req, res, next) => {
             INSERT INTO stops (atco_code, stop_name, street, indicator, latitude, longitude, locality)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (atco_code) DO UPDATE SET
-                stop_name = EXCLUDED.stop_name,
-                street = EXCLUDED.street,
+            stop_name = EXCLUDED.stop_name,
+            street = EXCLUDED.street,
                 indicator = EXCLUDED.indicator,
                 latitude = EXCLUDED.latitude,
                 longitude = EXCLUDED.longitude,
@@ -62,20 +62,13 @@ router.post('/', authenticateToken, async (req, res, next) => {
         `;
         const { rows } = await db.query(query, [atco_code, stop_name, street, indicator, latitude, longitude, locality]);
         res.status(201).json(rows[0]);
-    } catch (err) { next(err); }
-});
-
-// Delete stop (protected)
-router.delete('/:id', authenticateToken, async (req, res, next) => {
-    try {
-        const { rows } = await db.query('DELETE FROM stops WHERE atco_code = $1 RETURNING *', [req.params.id]);
-        if (!rows.length) return res.status(404).json({ error: 'Stop not found' });
-        res.json(rows[0]);
-    } catch (err) { next(err); }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Update stop (protected)
-router.put('/:id', authenticateToken, async (req, res, next) => {
+router.put('/:id', authenticateToken, async (req, res) => {
     try {
         const { stop_name, street, indicator, latitude, longitude, locality } = req.body;
         const query = `
@@ -91,8 +84,21 @@ router.put('/:id', authenticateToken, async (req, res, next) => {
         `;
         const { rows } = await db.query(query, [req.params.id, stop_name, street, indicator, latitude, longitude, locality]);
         if (!rows.length) return res.status(404).json({ error: 'Stop not found' });
-        res.json(rows[0]);
-    } catch (err) { next(err); }
+        res.status(200).json(rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete stop (protected)
+router.delete('/:id', authenticateToken, async (req, res) => {
+    try {
+        const { rows } = await db.query('DELETE FROM stops WHERE atco_code = $1 RETURNING *', [req.params.id]);
+        if (!rows.length) return res.status(404).json({ error: 'Stop not found' });
+        res.status(200).json(rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 module.exports = router;
