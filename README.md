@@ -1,6 +1,6 @@
 # Leeds Bus Tracker API
 
-This is an Node.js + Express application for buses in Leeds, allowing authenticated users to view, create, update, and delete data regarding bus stops and arrival logs.
+This is a Node.js + Express application for buses in Leeds, allowing authenticated users to view, create, update, and delete data regarding bus stops and arrival logs.
 
 ## Tech Stack
 - Runtime: Node.js
