@@ -78,10 +78,11 @@ function renderPaginated(containerId, result, fetchFn) {
     ).join('');
     const prevBtn = `<button class="btn btn-secondary" ${page <= 1 ? 'disabled' : ''} onclick="${fetchFn}(${page - 1})">&#8249; Prev</button>`;
     const nextBtn = `<button class="btn btn-secondary" ${page >= totalPages ? 'disabled' : ''} onclick="${fetchFn}(${page + 1})">Next &#8250;</button>`;
+    const lastBtn = `<button class="btn btn-secondary" ${page >= totalPages ? 'disabled' : ''} onclick="${fetchFn}(${totalPages})">Last &#187;</button>`;
     container.innerHTML =
         `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>` +
         `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:0.85rem">` +
-        `${prevBtn}${nextBtn}<span>Page ${page} of ${totalPages} &nbsp;(${total} total)</span></div>`;
+        `${prevBtn}${nextBtn}${lastBtn}<span>Page ${page} of ${totalPages} &nbsp;(${total} total)</span></div>`;
 }
 
 function renderStats(containerId, data) {
@@ -93,7 +94,6 @@ function renderStats(containerId, data) {
             <tr><th>Early</th><td>${s.early_count ?? 0}</td></tr>
             <tr><th>Late</th><td>${s.late_count}</td></tr>
             <tr><th>Cancelled</th><td>${s.cancelled_count}</td></tr>
-            <tr><th>Punctuality Score</th><td>${s.punctuality_score}%</td></tr>
         </table>`;
 }
 

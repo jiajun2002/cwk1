@@ -11,8 +11,7 @@ router.get('/:atco_code', async (req, res) => {
                 ROUND((AVG(delay_minutes) FILTER (WHERE status != 'cancelled'))::numeric, 2) as avg_delay,
                 COUNT(*) FILTER (WHERE status = 'early') as early_count,
                 COUNT(*) FILTER (WHERE status = 'late') as late_count,
-                COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_count,
-                ROUND((COUNT(*) FILTER (WHERE status = 'on-time')::numeric / NULLIF(COUNT(*), 0)) * 100, 1) as punctuality_score
+                COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_count
             FROM arrival_logs WHERE stop_id = $1
         `;
         const { rows } = await db.query(query, [req.params.atco_code]);
@@ -35,8 +34,7 @@ router.get('/route/:route_number', async (req, res) => {
                 ROUND((AVG(delay_minutes) FILTER (WHERE status != 'cancelled'))::numeric, 2) as avg_delay,
                 COUNT(*) FILTER (WHERE status = 'early') as early_count,
                 COUNT(*) FILTER (WHERE status = 'late') as late_count,
-                COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_count,
-                ROUND((COUNT(*) FILTER (WHERE status = 'on-time')::numeric / NULLIF(COUNT(*), 0)) * 100, 1) as punctuality_score
+                COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_count
             FROM arrival_logs
             WHERE route_number = $1
         `;
